@@ -1,0 +1,20 @@
+resources:
+  - namespace.yaml
+  - pvc-downloads.yaml
+  - pvc-media.yaml
+  - pvc-config-sabnzbd.yaml
+  - pvc-config-prowlarr.yaml
+  - pvc-config-sonarr.yaml
+  - pvc-config-radarr.yaml
+  - deployment-sabnzbd.yaml
+  - service-sabnzbd.yaml
+  - ingress-sabnzbd.yaml
+  - deployment-prowlarr.yaml
+  - service-prowlarr.yaml
+  - ingress-prowlarr.yaml
+  - deployment-sonarr.yaml
+  - service-sonarr.yaml
+  - ingress-sonarr.yaml
+  - deployment-radarr.yaml
+  - service-radarr.yaml
+  - ingress-radarr.yaml

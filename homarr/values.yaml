@@ -1,0 +1,33 @@
+env:
+  TZ: Europe/Berlin
+
+envSecrets:
+  dbEncryption:
+    existingSecret: homarr-secret
+    key: SECRET_ENCRYPTION_KEY
+
+persistence:
+  homarrDatabase:
+    enabled: true
+    name: homarr-data
+    storageClassName: local-path
+    accessMode: ReadWriteOnce
+    size: 100Mi
+    mountPath: /appdata
+
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+  hosts:
+    - host: dash.foerst.haus
+      paths:
+        - path: /
+  tls:
+    - secretName: homarr-tls
+      hosts:
+        - dash.foerst.haus
+
+rbac:
+  enabled: true

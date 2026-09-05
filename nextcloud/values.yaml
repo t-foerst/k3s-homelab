@@ -1,0 +1,77 @@
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    traefik.ingress.kubernetes.io/router.middlewares: nextcloud-nextcloud-headers@kubernetescrd
+  tls:
+    - secretName: nextcloud-tls
+      hosts:
+        - cloud.foerst.haus
+
+nextcloud:
+  host: cloud.foerst.haus
+  existingSecret:
+    enabled: true
+    secretName: nextcloud-secret
+    usernameKey: admin-user
+    passwordKey: admin-password
+  trustedDomains:
+    - cloud.foerst.haus
+  extraEnv:
+    - name: PHP_MEMORY_LIMIT
+      value: "512M"
+    - name: PHP_UPLOAD_LIMIT
+      value: "10G"
+  configs:
+    custom.config.php: |-
+      <?php
+      $CONFIG = array (
+        'overwriteprotocol' => 'https',
+        'overwrite.cli.url' => 'https://cloud.foerst.haus',
+        'default_phone_region' => 'DE',
+        'loglevel' => 2,
+        'maintenance_window_start' => 1,
+        'trusted_proxies' => ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
+        'forwarded_for_headers' => ['HTTP_X_FORWARDED_FOR'],
+        'auth.bruteforce.protection.enabled' => false,
+      );
+
+phpClientHttpsFix:
+  enabled: true
+  protocol: https
+
+internalDatabase:
+  enabled: false
+
+externalDatabase:
+  enabled: true
+  type: postgresql
+  host: nextcloud-db
+  database: nextcloud
+  user: nextcloud
+  existingSecret:
+    enabled: true
+    secretName: nextcloud-secret
+    usernameKey: postgresql-username
+    passwordKey: postgresql-password
+
+externalRedis:
+  enabled: true
+  host: nextcloud-redis
+  port: "6379"
+  existingSecret:
+    enabled: true
+    secretName: nextcloud-secret
+    passwordKey: redis-password
+
+cronjob:
+  enabled: true
+  type: sidecar
+
+persistence:
+  enabled: true
+  existingClaim: nextcloud-html
+  nextcloudData:
+    enabled: true
+    existingClaim: nextcloud-data

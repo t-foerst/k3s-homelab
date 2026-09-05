@@ -1,0 +1,10 @@
+resources:
+  - namespace.yaml
+  - pvc-data.yaml
+  - pvc-html.yaml
+  - pvc-db.yaml
+  - deployment-db.yaml
+  - service-db.yaml
+  - deployment-redis.yaml
+  - service-redis.yaml
+  - middleware.yaml

@@ -1,0 +1,7 @@
+resources:
+  - namespace.yaml
+  - pvc-library.yaml
+  - pvc-db.yaml
+  - deployment-db.yaml
+  - service-db.yaml
+  - middleware.yaml

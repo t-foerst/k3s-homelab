@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: abs-metadata-nfs
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+    - noatime
+  nfs:
+    server: 10.10.20.220
+    path: /mnt/Media/abs-metadata
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: abs-metadata
+  namespace: audiobookshelf
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: ""
+  volumeName: abs-metadata-nfs

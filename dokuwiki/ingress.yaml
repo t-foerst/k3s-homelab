@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dokuwiki
+  namespace: dokuwiki
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - wiki.foerst.haus
+      secretName: dokuwiki-tls
+  rules:
+    - host: wiki.foerst.haus
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dokuwiki
+                port:
+                  number: 80

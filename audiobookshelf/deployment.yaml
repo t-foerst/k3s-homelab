@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audiobookshelf
+  namespace: audiobookshelf
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: audiobookshelf
+  template:
+    metadata:
+      labels:
+        app: audiobookshelf
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: audiobookshelf
+          image: ghcr.io/advplyr/audiobookshelf:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 13378
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "13378"
+            - name: CONFIG_PATH
+              value: "/config"
+            - name: METADATA_PATH
+              value: "/metadata"
+            - name: AUDIOBOOKS_PATH
+              value: "/audiobooks"
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: metadata
+              mountPath: /metadata
+            - name: audiobooks
+              mountPath: /audiobooks
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: abs-config
+        - name: metadata
+          persistentVolumeClaim:
+            claimName: abs-metadata
+        - name: audiobooks
+          persistentVolumeClaim:
+            claimName: abs-audiobooks

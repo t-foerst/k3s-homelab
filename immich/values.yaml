@@ -1,0 +1,63 @@
+controllers:
+  main:
+    containers:
+      main:
+        image:
+          tag: v3.1.0
+        env:
+          TZ: Europe/Berlin
+          DB_HOSTNAME: immich-postgres
+          DB_PORT: "5432"
+          DB_DATABASE_NAME: immich
+          DB_USERNAME: immich
+          DB_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: immich-secret
+                key: db-password
+
+immich:
+  persistence:
+    library:
+      existingClaim: immich-library
+
+valkey:
+  enabled: true
+  persistence:
+    data:
+      type: persistentVolumeClaim
+      storageClass: local-path
+      accessMode: ReadWriteOnce
+      size: 1Gi
+
+server:
+  enabled: true
+  ingress:
+    main:
+      enabled: true
+      className: traefik
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: null
+        cert-manager.io/cluster-issuer: letsencrypt-dns
+        # Große Uploads (Videos, RAW-Fotos) erlauben
+        traefik.ingress.kubernetes.io/router.middlewares: immich-immich-upload@kubernetescrd,immich-immich-headers@kubernetescrd
+        traefik.ingress.kubernetes.io/service.servertransport: immich-immich-transport@kubernetescrd
+      hosts:
+        - host: photos.foerst.haus
+          paths:
+            - path: "/"
+              service:
+                identifier: main
+      tls:
+        - secretName: immich-tls
+          hosts:
+            - photos.foerst.haus
+
+machine-learning:
+  enabled: true
+  persistence:
+    cache:
+      type: persistentVolumeClaim
+      storageClass: local-path
+      accessMode: ReadWriteOnce
+      size: 10Gi
