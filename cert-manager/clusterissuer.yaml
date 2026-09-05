@@ -4,14 +4,14 @@ metadata:
   name: letsencrypt-dns
 spec:
   acme:
-    email: CHANGE-ME@example.com
+    email: thorbenfoerst@gmail.com
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-dns-account-key
     solvers:
       - dns01:
           cloudflare:
-            email: CHANGE-ME@example.com
+            email: thorbenfoerst@gmail.com
             apiTokenSecretRef:
               name: cloudflare-api-token
               key: api-token
