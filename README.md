@@ -29,6 +29,15 @@ Migrated subset of the apps from [`k8s-cluster`](https://github.com/t-foerst/k8s
 | Nextcloud | Helm (`nextcloud/nextcloud`, `https://nextcloud.github.io/helm/`) | Official chart |
 | Sonarr / Radarr / Prowlarr / SABnzbd (`arr/`), Audiobookshelf, DokuWiki, Jellyfin, Vaultwarden, Paperless-ngx | Raw Kustomize manifests | No official Helm chart from the upstream project. Per your call, these stay as plain manifests instead of adopting a third-party generic chart (bjw-s app-template / TrueCharts). |
 
+## Backups (Velero)
+
+Cluster-wide backups via the official Velero Helm chart (`vmware-tanzu/velero`), namespace `velero`:
+
+- **Object storage backend**: RustFS (S3-compatible), running as a TrueNAS app on the same box as the NFS exports, at `https://nas.foerst.haus:30293`, bucket `k3s-backup`. Configured as an `aws`-provider `BackupStorageLocation` (RustFS speaks the S3 API, so the standard `velero-plugin-for-aws` works — `region` is a dummy value since RustFS isn't real AWS).
+- **PV data**: no CSI snapshotter exists for `local-path` or the static NFS PVs, so Velero's File System Backup (node-agent DaemonSet, Kopia uploader) is used instead — `configuration.defaultVolumesToFsBackup: true` means every pod volume gets backed up by default, no per-pod opt-in annotations needed.
+- **Schedule**: a daily backup (`velero/values.yaml`, `schedules.daily`) at 03:00, 30-day retention, covering all namespaces except `kube-system` and `velero` itself.
+- **Credentials**: `velero-secret` (namespace `velero`) — an S3 access/secret key pair for RustFS, mounted as an AWS-style credentials file (see `secrets/velero-secret.yaml.example`).
+
 For Immich and Nextcloud, the chart only manages the app itself — Postgres (Immich needs the `pgvecto.rs`/pgvector-enabled image, Nextcloud needs a specific external DB) and, for Nextcloud, Redis are still small hand-written `Deployment`s in the app folder (`immich/deployment-db.yaml`, `nextcloud/deployment-db.yaml`, `nextcloud/deployment-redis.yaml`), wired up via the charts' `externalDatabase`/`externalRedis`/env-based config. This intentionally avoids the charts' bundled `mariadb`/`postgresql`/`redis` Bitnami subcharts, which now default to the frozen `bitnamilegacy/*` images.
 
 All three Helm values files were validated locally with `helm template` against the live chart versions before being committed — see the rendered output isn't stored here, but you can always re-check with e.g. `helm template immich immich/immich -f immich/values.yaml`.
@@ -58,7 +67,12 @@ make cert-manager
 kubectl apply -f secrets/cloudflare-api-token-secret.yaml   # copied from the .example + filled in
 make clusterissuer
 
-# 2. Per app: create the namespace/secret first, then deploy
+# 2. Backups: Velero
+kubectl create namespace velero --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -f secrets/velero-secret.yaml   # copied from the .example + filled in
+make velero
+
+# 3. Per app: create the namespace/secret first, then deploy
 kubectl apply -f secrets/vaultwarden-secret.yaml   # etc. — see secrets/*.yaml.example
 make vaultwarden
 make arr
@@ -83,6 +97,7 @@ Never committed. `secrets/*.yaml.example` are templates; copy them to `secrets/<
 - `paperless-secret` (namespace `paperless-ngx`) — `POSTGRES_PASSWORD`, `PAPERLESS_SECRET_KEY`
 - `vaultwarden-secret` (namespace `vaultwarden`) — `ADMIN_TOKEN`
 - `cloudflare-api-token` (namespace `cert-manager`) — `api-token`
+- `velero-secret` (namespace `velero`) — `cloud` (AWS-style credentials file for the RustFS S3 endpoint)
 
 The *arr stack, Audiobookshelf, DokuWiki, and Jellyfin need no secrets.
 

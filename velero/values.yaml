@@ -1,0 +1,37 @@
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.11.0
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+
+credentials:
+  useSecret: true
+  existingSecret: velero-secret
+
+configuration:
+  backupStorageLocation:
+    - name: default
+      provider: aws
+      bucket: k3s-backup
+      config:
+        region: minio # arbitrary — RustFS is S3-compatible, not real AWS, but the plugin requires a value
+        s3Url: https://nas.foerst.haus:30293
+        s3ForcePathStyle: true
+  volumeSnapshotLocation: []
+  defaultVolumesToFsBackup: true
+  uploaderType: kopia
+
+# FS backup (Kopia) via a node-agent DaemonSet — needed because there's no CSI
+# snapshotter (local-path/NFS), so this is how PVC contents actually get backed up.
+deployNodeAgent: true
+
+schedules:
+  daily:
+    schedule: "0 3 * * *"
+    template:
+      ttl: "720h" # 30 days
+      excludedNamespaces:
+        - kube-system
+        - velero

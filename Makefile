@@ -1,7 +1,7 @@
-.PHONY: help cert-manager clusterissuer arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud all
+.PHONY: help cert-manager clusterissuer velero arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud all
 
 help:
-	@echo "Platform:      make cert-manager clusterissuer"
+	@echo "Platform:      make cert-manager clusterissuer velero"
 	@echo "Raw manifests: make arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx"
 	@echo "Helm apps:     make homarr immich nextcloud"
 	@echo "Everything:    make all"
@@ -20,6 +20,14 @@ cert-manager:
 
 clusterissuer:
 	kubectl apply -f cert-manager/clusterissuer.yaml
+
+## --- Backups (Velero, backed by RustFS/S3 on the TrueNAS box) ---
+
+velero:
+	helm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts --force-update
+	helm upgrade --install velero vmware-tanzu/velero \
+		--namespace velero --create-namespace \
+		-f velero/values.yaml
 
 ## --- Apps kept as plain Kustomize manifests (no official Helm chart) ---
 
@@ -61,4 +69,4 @@ nextcloud:
 	helm upgrade --install nextcloud nextcloud/nextcloud \
 		--namespace nextcloud -f nextcloud/values.yaml
 
-all: cert-manager clusterissuer arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud
+all: cert-manager clusterissuer velero arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud
