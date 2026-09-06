@@ -16,8 +16,8 @@ configuration:
       provider: aws
       bucket: k3s-backup
       config:
-        region: minio # arbitrary — RustFS is S3-compatible, not real AWS, but the plugin requires a value
-        s3Url: https://nas.foerst.haus:30293
+        region: garage # must match Garage's configured s3_region, or S3 auth fails
+        s3Url: http://100.92.156.184:3900 # only reachable once the K3s host has joined the Netbird network
         s3ForcePathStyle: true
   volumeSnapshotLocation: []
   defaultVolumesToFsBackup: true
