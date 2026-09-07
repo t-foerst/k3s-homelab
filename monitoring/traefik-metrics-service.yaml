@@ -1,0 +1,20 @@
+# k3s' built-in Traefik already exports Prometheus metrics on port 9100 inside
+# the pod (baked into the default chart config), but only the 80/443 ports are
+# reachable from outside the cluster. This adds a NodePort so an external
+# Prometheus on the LAN can scrape it directly, without touching the Traefik
+# HelmChart config itself.
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-metrics
+  namespace: kube-system
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/instance: traefik-kube-system
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: metrics
+      nodePort: 30090

@@ -1,0 +1,6 @@
+# hostNetwork is already the chart default, kept explicit here since it's the
+# whole point: the pod binds directly to the node's network namespace, so
+# host metrics (CPU/RAM/disk/network) are reachable straight at
+# <node-ip>:9100/metrics for an external Prometheus, no Service/NodePort needed.
+hostNetwork: true
+hostPID: true

@@ -39,6 +39,31 @@ Cluster-wide backups via the official Velero Helm chart (`vmware-tanzu/velero`),
 - **Schedule**: a daily backup (`velero/values.yaml`, `schedules.daily`) at 03:00, 30-day retention, covering all namespaces except `kube-system` and `velero` itself.
 - **Credentials**: `velero-secret` (namespace `velero`) — an S3 access/secret key pair for Garage, mounted as an AWS-style credentials file (see `secrets/velero-secret.yaml.example`).
 
+## Metrics (external Prometheus)
+
+No Prometheus (and no Prometheus Operator/CRDs) runs inside the cluster — instead, `kube-state-metrics` and `node-exporter` are deployed via their official Helm charts (namespace `monitoring`, `make monitoring`) plus a small `NodePort` Service for Traefik's already-built-in metrics, and a Prometheus elsewhere on the LAN scrapes them directly. No auth in front of any of these — fine on a trusted LAN, but don't expose these ports beyond it (e.g. via Ingress) without adding one.
+
+| Target | Endpoint | Notes |
+|---|---|---|
+| kube-state-metrics | `<node-ip>:30080/metrics` | Cluster object state: pods, deployments, PVCs, restarts, etc. Fixed `NodePort` in `monitoring/kube-state-metrics-values.yaml`. |
+| node-exporter | `<node-ip>:9100/metrics` | Host metrics: CPU, RAM, disk, network. Runs with `hostNetwork: true` (chart default, kept explicit in `monitoring/node-exporter-values.yaml`), so it's on the node's own port 9100 — no Service/NodePort involved. |
+| Traefik | `<node-ip>:30090/metrics` | k3s' built-in Traefik already exposes Prometheus metrics on port 9100 inside the pod; `monitoring/traefik-metrics-service.yaml` just adds a `NodePort` in `kube-system` to reach it from outside the cluster. |
+
+`<node-ip>` is the K3s node's LAN IP (same one Traefik's ingress `LoadBalancer` uses, e.g. `10.10.20.100`). Example external `prometheus.yml` scrape config:
+
+```yaml
+scrape_configs:
+  - job_name: kube-state-metrics
+    static_configs:
+      - targets: ["10.10.20.100:30080"]
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["10.10.20.100:9100"]
+  - job_name: traefik
+    static_configs:
+      - targets: ["10.10.20.100:30090"]
+```
+
 For Immich and Nextcloud, the chart only manages the app itself — Postgres (Immich needs the `pgvecto.rs`/pgvector-enabled image, Nextcloud needs a specific external DB) and, for Nextcloud, Redis are still small hand-written `Deployment`s in the app folder (`immich/deployment-db.yaml`, `nextcloud/deployment-db.yaml`, `nextcloud/deployment-redis.yaml`), wired up via the charts' `externalDatabase`/`externalRedis`/env-based config. This intentionally avoids the charts' bundled `mariadb`/`postgresql`/`redis` Bitnami subcharts, which now default to the frozen `bitnamilegacy/*` images.
 
 All three Helm values files were validated locally with `helm template` against the live chart versions before being committed — see the rendered output isn't stored here, but you can always re-check with e.g. `helm template immich immich/immich -f immich/values.yaml`.
@@ -49,6 +74,7 @@ All three Helm values files were validated locally with `helm template` against 
 <app>/                    namespace, PVCs, Deployments/Services/Ingress (raw apps)
                           or values.yaml (+ supporting raw manifests) for Helm apps
 cert-manager/             ClusterIssuer for Let's Encrypt via Cloudflare DNS-01
+monitoring/               kube-state-metrics/node-exporter values.yaml + Traefik metrics NodePort
 secrets/                  gitignored — copy the *.example files, fill in, kubectl apply
 Makefile                  one target per app/step
 ```
@@ -73,7 +99,10 @@ kubectl create namespace velero --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f secrets/velero-secret.yaml   # copied from the .example + filled in
 make velero
 
-# 3. Per app: create the namespace/secret first, then deploy
+# 3. Metrics: kube-state-metrics + node-exporter + Traefik NodePort
+make monitoring
+
+# 4. Per app: create the namespace/secret first, then deploy
 kubectl apply -f secrets/vaultwarden-secret.yaml   # etc. — see secrets/*.yaml.example
 make vaultwarden
 make arr

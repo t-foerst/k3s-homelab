@@ -1,7 +1,7 @@
-.PHONY: help cert-manager clusterissuer velero arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud all
+.PHONY: help cert-manager clusterissuer velero monitoring arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud all
 
 help:
-	@echo "Platform:      make cert-manager clusterissuer velero"
+	@echo "Platform:      make cert-manager clusterissuer velero monitoring"
 	@echo "Raw manifests: make arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx"
 	@echo "Helm apps:     make homarr immich nextcloud"
 	@echo "Everything:    make all"
@@ -28,6 +28,17 @@ velero:
 	helm upgrade --install velero vmware-tanzu/velero \
 		--namespace velero --create-namespace \
 		-f velero/values.yaml
+
+## --- Metrics (kube-state-metrics + node-exporter + Traefik NodePort), ---
+## --- scraped by an external Prometheus on the LAN, no in-cluster Prometheus ---
+
+monitoring:
+	kubectl apply -k monitoring/
+	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+	helm upgrade --install kube-state-metrics prometheus-community/kube-state-metrics \
+		--namespace monitoring -f monitoring/kube-state-metrics-values.yaml
+	helm upgrade --install node-exporter prometheus-community/prometheus-node-exporter \
+		--namespace monitoring -f monitoring/node-exporter-values.yaml
 
 ## --- Apps kept as plain Kustomize manifests (no official Helm chart) ---
 
@@ -69,4 +80,4 @@ nextcloud:
 	helm upgrade --install nextcloud nextcloud/nextcloud \
 		--namespace nextcloud -f nextcloud/values.yaml
 
-all: cert-manager clusterissuer velero arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud
+all: cert-manager clusterissuer velero monitoring arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud

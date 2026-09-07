@@ -1,0 +1,6 @@
+# Fixed NodePort so an external Prometheus on the LAN can scrape cluster
+# object state (pods, deployments, PVCs, restarts, ...) directly at
+# <node-ip>:30080/metrics.
+service:
+  type: NodePort
+  nodePort: 30080

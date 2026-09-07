@@ -17,11 +17,13 @@ configuration:
       bucket: k3s-backup
       config:
         region: garage # must match Garage's configured s3_region, or S3 auth fails
-        s3Url: http://100.92.156.184:3900 # only reachable once the K3s host has joined the Netbird network
+        s3Url: http://192.168.2.189:3900 # only reachable once the K3s host has joined the Netbird network 100.92.156.184
         s3ForcePathStyle: true
   volumeSnapshotLocation: []
   defaultVolumesToFsBackup: true
   uploaderType: kopia
+  fsBackupTimeout: 24h # default is 4h, too short for a volume's first-ever (non-incremental) snapshot
+  defaultItemOperationTimeout: 24h
 
 # FS backup (Kopia) via a node-agent DaemonSet — needed because there's no CSI
 # snapshotter (local-path/NFS), so this is how PVC contents actually get backed up.
