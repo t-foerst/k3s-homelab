@@ -29,6 +29,15 @@ configuration:
 # snapshotter (local-path/NFS), so this is how PVC contents actually get backed up.
 deployNodeAgent: true
 
+# Metrics are enabled by default (port 8085) but ClusterIP-only; NodePort makes
+# them reachable for the external Prometheus on the LAN, same pattern as
+# monitoring/traefik-metrics-service.yaml.
+metrics:
+  enabled: true
+  service:
+    type: NodePort
+    nodePort: 30091
+
 schedules:
   daily:
     schedule: "0 3 * * *"

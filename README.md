@@ -48,6 +48,7 @@ No Prometheus (and no Prometheus Operator/CRDs) runs inside the cluster — inst
 | kube-state-metrics | `<node-ip>:30080/metrics` | Cluster object state: pods, deployments, PVCs, restarts, etc. Fixed `NodePort` in `monitoring/kube-state-metrics-values.yaml`. |
 | node-exporter | `<node-ip>:9100/metrics` | Host metrics: CPU, RAM, disk, network. Runs with `hostNetwork: true` (chart default, kept explicit in `monitoring/node-exporter-values.yaml`), so it's on the node's own port 9100 — no Service/NodePort involved. |
 | Traefik | `<node-ip>:30090/metrics` | k3s' built-in Traefik already exposes Prometheus metrics on port 9100 inside the pod; `monitoring/traefik-metrics-service.yaml` just adds a `NodePort` in `kube-system` to reach it from outside the cluster. |
+| Velero | `<node-ip>:30091/metrics` | Backup metrics (`velero_backup_success_total`, `velero_backup_last_status`, per-schedule/repository counters, Kopia maintenance durations, etc.) — enabled by chart default, just switched from `ClusterIP` to `NodePort` in `velero/values.yaml` (`metrics.service`). |
 
 `<node-ip>` is the K3s node's LAN IP (same one Traefik's ingress `LoadBalancer` uses, e.g. `10.10.20.100`). Example external `prometheus.yml` scrape config:
 
@@ -62,6 +63,9 @@ scrape_configs:
   - job_name: traefik
     static_configs:
       - targets: ["10.10.20.100:30090"]
+  - job_name: velero
+    static_configs:
+      - targets: ["10.10.20.100:30091"]
 ```
 
 For Immich and Nextcloud, the chart only manages the app itself — Postgres (Immich needs the `pgvecto.rs`/pgvector-enabled image, Nextcloud needs a specific external DB) and, for Nextcloud, Redis are still small hand-written `Deployment`s in the app folder (`immich/deployment-db.yaml`, `nextcloud/deployment-db.yaml`, `nextcloud/deployment-redis.yaml`), wired up via the charts' `externalDatabase`/`externalRedis`/env-based config. This intentionally avoids the charts' bundled `mariadb`/`postgresql`/`redis` Bitnami subcharts, which now default to the frozen `bitnamilegacy/*` images.
