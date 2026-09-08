@@ -17,7 +17,7 @@ configuration:
       bucket: k3s-backup
       config:
         region: garage # must match Garage's configured s3_region, or S3 auth fails
-        s3Url: http://192.168.2.189:3900 # only reachable once the K3s host has joined the Netbird network 100.92.156.184
+        s3Url: http://100.92.156.184:3900 # only reachable once the K3s host has joined the Netbird network
         s3ForcePathStyle: true
   volumeSnapshotLocation: []
   defaultVolumesToFsBackup: true
