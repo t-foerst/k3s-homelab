@@ -1,137 +1,67 @@
 # k3s-homelab
 
-Migrated subset of the apps from [`k8s-cluster`](https://github.com/t-foerst/k8s-cluster) onto a plain **K3s** cluster, deployed with **Helm** (where an official chart exists) and **kubectl/Kustomize** (where it doesn't) — no ArgoCD, no MetalLB, no Longhorn.
+Manifests for a single-node K3s homelab cluster. Deployed with Helm (official charts) or `kubectl apply -k` (raw Kustomize manifests) via `make` — no ArgoCD, no MetalLB, no Longhorn. Uses K3s' built-in Traefik/ServiceLB and `local-path` StorageClass.
 
-## What changed vs. `k8s-cluster`
+## Apps
 
-| Area | `k8s-cluster` | `k3s-homelab` |
-|---|---|---|
-| GitOps | ArgoCD (App-of-Apps, auto-sync) | None — deploy manually via `make` / `helm` / `kubectl` |
-| Ingress | Two Traefik instances (`traefik-internal` / `traefik-external`) behind MetalLB | K3s' built-in Traefik, single `traefik` IngressClass, single ServiceLB IP for everything |
-| Small/DB storage | `longhorn-ssd` (replicated) | `local-path` (K3s built-in, single-node, dynamic) |
-| Large media/library storage | Static NFS `PersistentVolume`s (TrueNAS) | **Unchanged** — same server, same paths, same PV/PVC pattern |
-| TLS | cert-manager + Let's Encrypt (Cloudflare DNS-01) | Unchanged, but cert-manager now has to be installed explicitly (it isn't a K3s built-in) |
-| App packaging | Mostly raw Kustomize manifests, Homarr already Helm | Homarr, Immich, Nextcloud → official Helm charts. Everything else has no official/maintained chart from its own project, so it stays raw manifests (per explicit choice) |
+| App | Namespace | Packaging | Hostname |
+|---|---|---|---|
+| Vaultwarden | `vaultwarden` | Kustomize | vault.foerst.haus |
+| Sonarr / Radarr / Prowlarr / SABnzbd | `arr` | Kustomize | sonarr/radarr/prowlarr/sabnzbd.foerst.haus |
+| Audiobookshelf | `audiobookshelf` | Kustomize | books.foerst.haus |
+| Jellyfin | `jellyfin` | Kustomize | media.foerst.haus |
+| Homarr | `homarr` | Helm | dash.foerst.haus |
+| Immich | `immich` | Helm + Kustomize (Postgres) | photos.foerst.haus |
+| Nextcloud | `nextcloud` | Helm + Kustomize (Postgres, Redis) | cloud.foerst.haus |
 
-**Ingress topology note:** dropping the internal/external Traefik split means there is no more K8s-level separation between "public" apps (Jellyfin, Nextcloud, Immich, Audiobookshelf) and "internal-only" apps (Vaultwarden, Homarr, the *arr stack). All of them sit behind the one built-in Traefik/ServiceLB IP now. If you still want some apps unreachable from the internet, do it outside Kubernetes — e.g. only port-forward 443 for that one IP on your router for the hostnames that should be public, and rely on VPN/LAN-only access for the rest.
+Immich and Nextcloud run their own Postgres (and Nextcloud its own Redis) as plain `Deployment`s in the app folder instead of the charts' bundled Bitnami subcharts, wired in via `externalDatabase`/`externalRedis`.
 
-## Storage classes
+## Platform
 
-- **`local-path`** — K3s' built-in dynamic provisioner. Used for every small, single-node volume: app config, databases, caches. All of these were `ReadWriteOnce` already, so the switch from `longhorn-ssd` is a drop-in replacement (no replication anymore, but this is a single-node homelab).
-- **NFS (static PV/PVC, `storageClassName: ""`)** — unchanged. Same TrueNAS box (`10.10.20.220`), same export paths, same `ReadWriteMany` PVs for `*-media`/`*-library`/`*-downloads`/`*-audiobooks`/`*-metadata` volumes. These are pre-existing exports — nothing in this repo creates or manages the NFS server side.
+- **cert-manager** + a `ClusterIssuer` (`letsencrypt-dns`, Cloudflare DNS-01) for TLS on every Ingress
+- **Velero** (`velero` namespace): daily backup at 03:00, 30-day retention, all namespaces except `kube-system`/`velero`. Object storage is a Garage (S3-compatible) instance reachable over Netbird. No CSI snapshotter for `local-path`/NFS, so PV data is backed up via Velero's node-agent (Kopia).
+- **Monitoring**: `kube-state-metrics` and `node-exporter` (Helm, namespace `monitoring`) plus a `NodePort` for Traefik's built-in metrics — no in-cluster Prometheus, scraped by one elsewhere on the LAN.
 
-## Helm vs. raw manifests
+## Storage
 
-| App | Packaging | Why |
-|---|---|---|
-| Homarr | Helm (`oci://ghcr.io/homarr-labs/charts/homarr`) | Official chart |
-| Immich | Helm (`immich/immich`, `https://immich-app.github.io/immich-charts`) | Official chart |
-| Nextcloud | Helm (`nextcloud/nextcloud`, `https://nextcloud.github.io/helm/`) | Official chart |
-| Sonarr / Radarr / Prowlarr / SABnzbd (`arr/`), Audiobookshelf, Jellyfin, Vaultwarden | Raw Kustomize manifests | No official Helm chart from the upstream project. Per your call, these stay as plain manifests instead of adopting a third-party generic chart (bjw-s app-template / TrueCharts). |
+- `local-path` — K3s' built-in dynamic provisioner, for app config/DB/cache volumes
+- Static NFS PV/PVC (`storageClassName: ""`), TrueNAS at `10.10.20.220` — for media/library volumes (`arr`, `jellyfin`, `immich`, `nextcloud`)
 
-## Backups (Velero)
-
-Cluster-wide backups via the official Velero Helm chart (`vmware-tanzu/velero`), namespace `velero`:
-
-- **Object storage backend**: a [Garage](https://garagehq.deuxfleurs.fr/) instance (S3-compatible) reachable only over [Netbird](https://netbird.io/) at `http://backup-server.netbird.cloud:3900`, bucket `k3s-backup`. Configured as an `aws`-provider `BackupStorageLocation` (Garage speaks the S3 API, so the standard `velero-plugin-for-aws` works). `region` must be set to Garage's configured `s3_region` (`garage` here) — unlike most S3-compatible stores, Garage validates the region on every request and rejects mismatches.
-  - **Networking prerequisite**: the K3s host itself needs to join the Netbird network (e.g. the `netbird` client installed on the host) — Velero's pods reach `backup-server.netbird.cloud` through the host's routing table via k3s/Flannel's SNAT-to-node-IP behavior, no in-cluster Netbird client needed. The one thing worth verifying after joining is DNS: pods resolve names through CoreDNS, which forwards to whatever's in the node's `/etc/resolv.conf` — confirm that actually reaches Netbird's MagicDNS (`kubectl run -it --rm dnstest --image=busybox -- nslookup backup-server.netbird.cloud`), and if it doesn't, use the peer's static Netbird IP in `s3Url` instead of the hostname.
-- **PV data**: no CSI snapshotter exists for `local-path` or the static NFS PVs, so Velero's File System Backup (node-agent DaemonSet, Kopia uploader) is used instead — `configuration.defaultVolumesToFsBackup: true` means every pod volume gets backed up by default, no per-pod opt-in annotations needed. Kopia repositories are encrypted client-side regardless of the storage backend.
-- **Schedule**: a daily backup (`velero/values.yaml`, `schedules.daily`) at 03:00, 30-day retention, covering all namespaces except `kube-system` and `velero` itself.
-- **Credentials**: `velero-secret` (namespace `velero`) — an S3 access/secret key pair for Garage, mounted as an AWS-style credentials file (see `secrets/velero-secret.yaml.example`).
-
-## Metrics (external Prometheus)
-
-No Prometheus (and no Prometheus Operator/CRDs) runs inside the cluster — instead, `kube-state-metrics` and `node-exporter` are deployed via their official Helm charts (namespace `monitoring`, `make monitoring`) plus a small `NodePort` Service for Traefik's already-built-in metrics, and a Prometheus elsewhere on the LAN scrapes them directly. No auth in front of any of these — fine on a trusted LAN, but don't expose these ports beyond it (e.g. via Ingress) without adding one.
-
-| Target | Endpoint | Notes |
-|---|---|---|
-| kube-state-metrics | `<node-ip>:30080/metrics` | Cluster object state: pods, deployments, PVCs, restarts, etc. Fixed `NodePort` in `monitoring/kube-state-metrics-values.yaml`. |
-| node-exporter | `<node-ip>:9100/metrics` | Host metrics: CPU, RAM, disk, network. Runs with `hostNetwork: true` (chart default, kept explicit in `monitoring/node-exporter-values.yaml`), so it's on the node's own port 9100 — no Service/NodePort involved. |
-| Traefik | `<node-ip>:30090/metrics` | k3s' built-in Traefik already exposes Prometheus metrics on port 9100 inside the pod; `monitoring/traefik-metrics-service.yaml` just adds a `NodePort` in `kube-system` to reach it from outside the cluster. |
-| Velero | `<node-ip>:30091/metrics` | Backup metrics (`velero_backup_success_total`, `velero_backup_last_status`, per-schedule/repository counters, Kopia maintenance durations, etc.) — enabled by chart default, just switched from `ClusterIP` to `NodePort` in `velero/values.yaml` (`metrics.service`). |
-
-`<node-ip>` is the K3s node's LAN IP (same one Traefik's ingress `LoadBalancer` uses, e.g. `10.10.20.100`). Example external `prometheus.yml` scrape config:
-
-```yaml
-scrape_configs:
-  - job_name: kube-state-metrics
-    static_configs:
-      - targets: ["10.10.20.100:30080"]
-  - job_name: node-exporter
-    static_configs:
-      - targets: ["10.10.20.100:9100"]
-  - job_name: traefik
-    static_configs:
-      - targets: ["10.10.20.100:30090"]
-  - job_name: velero
-    static_configs:
-      - targets: ["10.10.20.100:30091"]
-```
-
-For Immich and Nextcloud, the chart only manages the app itself — Postgres (Immich needs the `pgvecto.rs`/pgvector-enabled image, Nextcloud needs a specific external DB) and, for Nextcloud, Redis are still small hand-written `Deployment`s in the app folder (`immich/deployment-db.yaml`, `nextcloud/deployment-db.yaml`, `nextcloud/deployment-redis.yaml`), wired up via the charts' `externalDatabase`/`externalRedis`/env-based config. This intentionally avoids the charts' bundled `mariadb`/`postgresql`/`redis` Bitnami subcharts, which now default to the frozen `bitnamilegacy/*` images.
-
-All three Helm values files were validated locally with `helm template` against the live chart versions before being committed — see the rendered output isn't stored here, but you can always re-check with e.g. `helm template immich immich/immich -f immich/values.yaml`.
-
-## Repo layout
-
-```
-<app>/                    namespace, PVCs, Deployments/Services/Ingress (raw apps)
-                          or values.yaml (+ supporting raw manifests) for Helm apps
-cert-manager/             ClusterIssuer for Let's Encrypt via Cloudflare DNS-01
-monitoring/               kube-state-metrics/node-exporter values.yaml + Traefik metrics NodePort
-secrets/                  gitignored — copy the *.example files, fill in, kubectl apply
-Makefile                  one target per app/step
-```
-
-## Prerequisites
-
-- A running K3s cluster with the built-in Traefik ingress controller and `local-path` StorageClass enabled (both are on by default).
-- `helm` and `kubectl` pointed at the cluster.
-- The NFS exports from `10.10.20.220` reachable from every node.
-- A Cloudflare API token with DNS-edit permission on `foerst.haus`, for cert-manager's DNS-01 solver.
-
-## Deploy order
+## Deploy
 
 ```bash
-# 1. Platform: cert-manager + ClusterIssuer
-make cert-manager
-kubectl apply -f secrets/cloudflare-api-token-secret.yaml   # copied from the .example + filled in
-make clusterissuer
-
-# 2. Backups: Velero
-kubectl create namespace velero --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f secrets/velero-secret.yaml   # copied from the .example + filled in
-make velero
-
-# 3. Metrics: kube-state-metrics + node-exporter + Traefik NodePort
-make monitoring
-
-# 4. Per app: create the namespace/secret first, then deploy
-kubectl apply -f secrets/vaultwarden-secret.yaml   # etc. — see secrets/*.yaml.example
-make vaultwarden
-make arr
-make audiobookshelf
-make jellyfin
-make homarr
-make immich
-make nextcloud
+make cert-manager clusterissuer   # TLS
+make velero                       # backups
+make monitoring                   # metrics
+make arr audiobookshelf jellyfin vaultwarden homarr immich nextcloud
+# or: make all
 ```
 
-Or just `make all` once every needed secret has already been applied (the Helm/Kustomize resources will otherwise come up but the app containers will `CrashLoopBackOff`/fail auth until the referenced Secret exists — nothing will be silently misconfigured).
+`make help` lists all targets. Secrets aren't applied automatically — apply the ones below before (or right after) the app that needs them, otherwise its pods will `CrashLoopBackOff`/fail auth.
 
 ## Secrets
 
-Never committed. `secrets/*.yaml.example` are templates; copy them to `secrets/<name>.yaml` (gitignored), fill in real values, and `kubectl apply -f` them into the right namespace before the app that needs them comes up:
+`secrets/` is gitignored — nothing under it is committed. Create these manually and `kubectl apply -f` them into the given namespace:
 
-- `homarr-secret` (namespace `homarr`) — `SECRET_ENCRYPTION_KEY`
-- `immich-secret` (namespace `immich`) — `db-password`
-- `nextcloud-secret` (namespace `nextcloud`) — `admin-user`, `admin-password`, `postgresql-username`, `postgresql-password`, `redis-password`
-- `vaultwarden-secret` (namespace `vaultwarden`) — `ADMIN_TOKEN`
-- `cloudflare-api-token` (namespace `cert-manager`) — `api-token`
-- `velero-secret` (namespace `velero`) — `cloud` (AWS-style credentials file for the Garage S3 endpoint)
+| Secret | Namespace | Keys |
+|---|---|---|
+| `cloudflare-api-token` | `cert-manager` | `api-token` |
+| `velero-secret` | `velero` | `cloud` (AWS-style credentials file for the Garage S3 endpoint) |
+| `homarr-secret` | `homarr` | `SECRET_ENCRYPTION_KEY` |
+| `immich-secret` | `immich` | `db-password` |
+| `nextcloud-secret` | `nextcloud` | `admin-user`, `admin-password`, `postgresql-username`, `postgresql-password`, `redis-password` |
+| `vaultwarden-secret` | `vaultwarden` | `ADMIN_TOKEN` |
 
-The *arr stack, Audiobookshelf, and Jellyfin need no secrets.
+`arr`, `audiobookshelf`, and `jellyfin` need no secrets.
 
-## Hostnames
+## Layout
 
-All unchanged from `k8s-cluster` (`*.foerst.haus`), now all resolving to the single K3s Traefik ServiceLB IP instead of two separate MetalLB IPs.
+```
+<app>/          namespace, PVCs, Deployment/Service/Ingress (Kustomize apps)
+                or values.yaml + supporting manifests (Helm apps)
+cert-manager/   ClusterIssuer
+monitoring/     kube-state-metrics/node-exporter values.yaml, Traefik metrics NodePort
+velero/         Helm values
+secrets/        gitignored, created manually
+Makefile        one target per app/step
+```
