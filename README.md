@@ -13,7 +13,7 @@ Migrated subset of the apps from [`k8s-cluster`](https://github.com/t-foerst/k8s
 | TLS | cert-manager + Let's Encrypt (Cloudflare DNS-01) | Unchanged, but cert-manager now has to be installed explicitly (it isn't a K3s built-in) |
 | App packaging | Mostly raw Kustomize manifests, Homarr already Helm | Homarr, Immich, Nextcloud → official Helm charts. Everything else has no official/maintained chart from its own project, so it stays raw manifests (per explicit choice) |
 
-**Ingress topology note:** dropping the internal/external Traefik split means there is no more K8s-level separation between "public" apps (Jellyfin, Nextcloud, Immich, Audiobookshelf) and "internal-only" apps (Vaultwarden, DokuWiki, Homarr, the *arr stack). All of them sit behind the one built-in Traefik/ServiceLB IP now. If you still want some apps unreachable from the internet, do it outside Kubernetes — e.g. only port-forward 443 for that one IP on your router for the hostnames that should be public, and rely on VPN/LAN-only access for the rest.
+**Ingress topology note:** dropping the internal/external Traefik split means there is no more K8s-level separation between "public" apps (Jellyfin, Nextcloud, Immich, Audiobookshelf) and "internal-only" apps (Vaultwarden, Homarr, the *arr stack). All of them sit behind the one built-in Traefik/ServiceLB IP now. If you still want some apps unreachable from the internet, do it outside Kubernetes — e.g. only port-forward 443 for that one IP on your router for the hostnames that should be public, and rely on VPN/LAN-only access for the rest.
 
 ## Storage classes
 
@@ -27,7 +27,7 @@ Migrated subset of the apps from [`k8s-cluster`](https://github.com/t-foerst/k8s
 | Homarr | Helm (`oci://ghcr.io/homarr-labs/charts/homarr`) | Official chart |
 | Immich | Helm (`immich/immich`, `https://immich-app.github.io/immich-charts`) | Official chart |
 | Nextcloud | Helm (`nextcloud/nextcloud`, `https://nextcloud.github.io/helm/`) | Official chart |
-| Sonarr / Radarr / Prowlarr / SABnzbd (`arr/`), Audiobookshelf, DokuWiki, Jellyfin, Vaultwarden | Raw Kustomize manifests | No official Helm chart from the upstream project. Per your call, these stay as plain manifests instead of adopting a third-party generic chart (bjw-s app-template / TrueCharts). |
+| Sonarr / Radarr / Prowlarr / SABnzbd (`arr/`), Audiobookshelf, Jellyfin, Vaultwarden | Raw Kustomize manifests | No official Helm chart from the upstream project. Per your call, these stay as plain manifests instead of adopting a third-party generic chart (bjw-s app-template / TrueCharts). |
 
 ## Backups (Velero)
 
@@ -111,7 +111,6 @@ kubectl apply -f secrets/vaultwarden-secret.yaml   # etc. — see secrets/*.yaml
 make vaultwarden
 make arr
 make audiobookshelf
-make dokuwiki
 make jellyfin
 make homarr
 make immich
@@ -131,7 +130,7 @@ Never committed. `secrets/*.yaml.example` are templates; copy them to `secrets/<
 - `cloudflare-api-token` (namespace `cert-manager`) — `api-token`
 - `velero-secret` (namespace `velero`) — `cloud` (AWS-style credentials file for the RustFS S3 endpoint)
 
-The *arr stack, Audiobookshelf, DokuWiki, and Jellyfin need no secrets.
+The *arr stack, Audiobookshelf, and Jellyfin need no secrets.
 
 ## Hostnames
 
