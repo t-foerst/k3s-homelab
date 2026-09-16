@@ -1,8 +1,8 @@
-.PHONY: help cert-manager clusterissuer velero monitoring arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud all
+.PHONY: help cert-manager clusterissuer velero monitoring arr audiobookshelf dokuwiki jellyfin vaultwarden homarr immich nextcloud all
 
 help:
 	@echo "Platform:      make cert-manager clusterissuer velero monitoring"
-	@echo "Raw manifests: make arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx"
+	@echo "Raw manifests: make arr audiobookshelf dokuwiki jellyfin vaultwarden"
 	@echo "Helm apps:     make homarr immich nextcloud"
 	@echo "Everything:    make all"
 	@echo ""
@@ -57,9 +57,6 @@ jellyfin:
 vaultwarden:
 	kubectl apply -k vaultwarden/
 
-paperless-ngx:
-	kubectl apply -k paperless-ngx/
-
 ## --- Apps deployed via their official Helm chart ---
 ## (namespace + supporting DB/Redis/Middleware manifests are applied first)
 
@@ -80,4 +77,4 @@ nextcloud:
 	helm upgrade --install nextcloud nextcloud/nextcloud \
 		--namespace nextcloud -f nextcloud/values.yaml
 
-all: cert-manager clusterissuer velero monitoring arr audiobookshelf dokuwiki jellyfin vaultwarden paperless-ngx homarr immich nextcloud
+all: cert-manager clusterissuer velero monitoring arr audiobookshelf dokuwiki jellyfin vaultwarden homarr immich nextcloud
