@@ -128,7 +128,7 @@ Never committed. `secrets/*.yaml.example` are templates; copy them to `secrets/<
 - `nextcloud-secret` (namespace `nextcloud`) — `admin-user`, `admin-password`, `postgresql-username`, `postgresql-password`, `redis-password`
 - `vaultwarden-secret` (namespace `vaultwarden`) — `ADMIN_TOKEN`
 - `cloudflare-api-token` (namespace `cert-manager`) — `api-token`
-- `velero-secret` (namespace `velero`) — `cloud` (AWS-style credentials file for the RustFS S3 endpoint)
+- `velero-secret` (namespace `velero`) — `cloud` (AWS-style credentials file for the Garage S3 endpoint)
 
 The *arr stack, Audiobookshelf, and Jellyfin need no secrets.
 

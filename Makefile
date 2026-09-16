@@ -21,7 +21,7 @@ cert-manager:
 clusterissuer:
 	kubectl apply -f cert-manager/clusterissuer.yaml
 
-## --- Backups (Velero, backed by RustFS/S3 on the TrueNAS box) ---
+## --- Backups (Velero, backed by Garage/S3 on the external backup-server, via Netbird) ---
 
 velero:
 	helm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts --force-update
