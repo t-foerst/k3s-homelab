@@ -5,6 +5,8 @@ metadata:
   namespace: vaultwarden
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: vaultwarden
@@ -16,8 +18,10 @@ spec:
       containers:
         - name: vaultwarden
           image: vaultwarden/server:1.37.0
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 80
+            - name: http
+              containerPort: 80
           env:
             - name: ADMIN_TOKEN
               valueFrom:
@@ -27,6 +31,24 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /alive
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
       volumes:
         - name: data
           persistentVolumeClaim:

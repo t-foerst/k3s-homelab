@@ -20,12 +20,12 @@ Immich and Nextcloud run their own Postgres (and Nextcloud its own Redis) as pla
 
 - **cert-manager** + a `ClusterIssuer` (`letsencrypt-dns`, Cloudflare DNS-01) for TLS on every Ingress
 - **Velero** (`velero` namespace): daily backup at 03:00, 30-day retention, all namespaces except `kube-system`/`velero`. Object storage is a Garage (S3-compatible) instance reachable over Netbird. No CSI snapshotter for `local-path`/NFS, so PV data is backed up via Velero's node-agent (Kopia).
-- **Monitoring**: `kube-state-metrics` and `node-exporter` (Helm, namespace `monitoring`) plus a `NodePort` for Traefik's built-in metrics — no in-cluster Prometheus, scraped by one elsewhere on the LAN.
+- **Monitoring**: `kube-state-metrics` (NodePort 30080) and `node-exporter` (hostNetwork, :9100) (Helm, namespace `monitoring`) plus NodePorts for Traefik's (30090) and Velero's (30091) built-in metrics — no in-cluster Prometheus, scraped by one elsewhere on the LAN.
 
 ## Storage
 
 - `local-path` — K3s' built-in dynamic provisioner, for app config/DB/cache volumes
-- Static NFS PV/PVC (`storageClassName: ""`), TrueNAS at `10.10.20.220` — for media/library volumes (`arr`, `jellyfin`, `immich`, `nextcloud`)
+- Static NFS PV/PVC (`storageClassName: ""`), TrueNAS at `10.10.20.220` — for media/library volumes (`arr`, `audiobookshelf`, `jellyfin`, `immich`, `nextcloud`)
 
 ## Deploy
 
@@ -37,7 +37,7 @@ make arr audiobookshelf jellyfin vaultwarden homarr immich nextcloud
 # or: make all
 ```
 
-`make help` lists all targets. Secrets aren't applied automatically — apply the ones below before (or right after) the app that needs them, otherwise its pods will `CrashLoopBackOff`/fail auth.
+`make help` lists all targets. Helm chart versions are pinned via `--version` in the `Makefile` — bump them there by hand when upgrading. Secrets aren't applied automatically — apply the ones below before (or right after) the app that needs them, otherwise its pods will `CrashLoopBackOff`/fail auth.
 
 ## Secrets
 
