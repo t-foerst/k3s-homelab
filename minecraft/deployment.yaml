@@ -77,12 +77,15 @@ spec:
                 - mc-health
             periodSeconds: 30
             timeoutSeconds: 10
+          # Aikar's flags pre-touch the whole 3G heap at startup, so ~3.5Gi is
+          # the idle baseline; the limit leaves room for off-heap growth
+          # (chunk loading, netty buffers) so the OOM killer doesn't hit mid-save.
           resources:
             requests:
               cpu: 500m
               memory: 3584Mi
             limits:
-              memory: 4Gi
+              memory: 5Gi
       volumes:
         - name: data
           persistentVolumeClaim:
