@@ -42,7 +42,7 @@ schedules:
   daily:
     schedule: "0 3 * * *"
     template:
-      ttl: "720h" # 30 days
+      ttl: "720h0m0s" # 30 days; written in Velero's normalized form, otherwise Helm's server-side apply conflicts with the velero controller
       excludedNamespaces:
         - kube-system
         - velero

@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: sabnzbd
-          image: lscr.io/linuxserver/sabnzbd:latest
+          image: lscr.io/linuxserver/sabnzbd:5.1.2-ls271
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

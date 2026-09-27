@@ -37,7 +37,7 @@ make arr audiobookshelf jellyfin vaultwarden homarr immich nextcloud
 # or: make all
 ```
 
-`make help` lists all targets. Helm chart versions are pinned via `--version` in the `Makefile` — bump them there by hand when upgrading. Secrets aren't applied automatically — apply the ones below before (or right after) the app that needs them, otherwise its pods will `CrashLoopBackOff`/fail auth.
+`make help` lists all targets. Helm chart versions are pinned via `--version` in the `Makefile`, and every container image uses an exact version tag (no `:latest`) — bump them by hand when upgrading. Secrets aren't applied automatically — apply the ones below before (or right after) the app that needs them, otherwise its pods will `CrashLoopBackOff`/fail auth.
 
 ## Secrets
 
