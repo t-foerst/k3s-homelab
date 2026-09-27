@@ -1,8 +1,8 @@
-.PHONY: help cert-manager clusterissuer velero monitoring arr audiobookshelf jellyfin vaultwarden homarr immich nextcloud all
+.PHONY: help cert-manager clusterissuer velero monitoring arr audiobookshelf jellyfin vaultwarden minecraft homarr immich nextcloud all
 
 help:
 	@echo "Platform:      make cert-manager clusterissuer velero monitoring"
-	@echo "Raw manifests: make arr audiobookshelf jellyfin vaultwarden"
+	@echo "Raw manifests: make arr audiobookshelf jellyfin vaultwarden minecraft"
 	@echo "Helm apps:     make homarr immich nextcloud"
 	@echo "Everything:    make all"
 	@echo ""
@@ -56,6 +56,9 @@ jellyfin:
 vaultwarden:
 	kubectl apply -k vaultwarden/
 
+minecraft:
+	kubectl apply -k minecraft/
+
 ## --- Apps deployed via their official Helm chart ---
 ## (namespace + supporting DB/Redis/Middleware manifests are applied first)
 
@@ -76,4 +79,4 @@ nextcloud:
 	helm upgrade --install nextcloud nextcloud/nextcloud --version 9.2.6 \
 		--namespace nextcloud -f nextcloud/values.yaml
 
-all: cert-manager clusterissuer velero monitoring arr audiobookshelf jellyfin vaultwarden homarr immich nextcloud
+all: cert-manager clusterissuer velero monitoring arr audiobookshelf jellyfin vaultwarden minecraft homarr immich nextcloud

@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft
+  namespace: minecraft
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: minecraft
+  template:
+    metadata:
+      labels:
+        app: minecraft
+      annotations:
+        # Flush the world to disk and pause autosaving while Velero's Kopia
+        # copies the volume, otherwise region files can be caught mid-write.
+        pre.hook.backup.velero.io/container: minecraft
+        pre.hook.backup.velero.io/command: '["/bin/sh", "-c", "rcon-cli save-off && rcon-cli save-all flush"]'
+        pre.hook.backup.velero.io/timeout: 2m
+        post.hook.backup.velero.io/container: minecraft
+        post.hook.backup.velero.io/command: '["rcon-cli", "save-on"]'
+    spec:
+      containers:
+        - name: minecraft
+          image: itzg/minecraft-server:2026.9.2-java25
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: minecraft
+              containerPort: 25565
+          env:
+            - name: EULA
+              value: "TRUE"
+            - name: TYPE
+              value: PAPER
+            - name: VERSION
+              value: "26.2"
+            - name: PAPER_BUILD
+              value: "129"
+            - name: MEMORY
+              value: 3G
+            - name: USE_AIKAR_FLAGS
+              value: "true"
+            - name: TZ
+              value: Europe/Berlin
+            - name: MOTD
+              value: foerst.haus Minecraft
+            - name: DIFFICULTY
+              value: normal
+            - name: MAX_PLAYERS
+              value: "10"
+            - name: VIEW_DISTANCE
+              value: "10"
+            - name: ONLINE_MODE
+              value: "true"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          # First boot downloads Paper and generates the world, which can take
+          # a few minutes; the startupProbe covers that before liveness kicks in.
+          startupProbe:
+            exec:
+              command:
+                - mc-health
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command:
+                - mc-health
+            periodSeconds: 15
+          livenessProbe:
+            exec:
+              command:
+                - mc-health
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 500m
+              memory: 3584Mi
+            limits:
+              memory: 4Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: minecraft-data
