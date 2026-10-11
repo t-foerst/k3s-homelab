@@ -17,8 +17,24 @@ spec:
       annotations:
         backup.velero.io/backup-volumes-excludes: audiobooks
     spec:
+      # Runs as UID 1000 like the *arr apps and Bindery: the NFS server squashes
+      # root to nobody, which can't write covers/metadata.json into the book
+      # folders Bindery creates (owned by 1000, mode 750).
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
+      initContainers:
+        # The config volume was written by root before; hand it over to 1000.
+        - name: chown-config
+          image: busybox:1.37
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          command: ["sh", "-c", "chown -R 1000:1000 /config && chmod -R u+rwX /config"]
+          volumeMounts:
+            - name: config
+              mountPath: /config
       containers:
         - name: audiobookshelf
           image: ghcr.io/advplyr/audiobookshelf:2.36.0
@@ -38,6 +54,10 @@ spec:
             # ABS backups.
             - name: METADATA_PATH
               value: "/config/metadata"
+            # Overrides the backup path stored in the DB (still the old
+            # /metadata/backups from when the metadata had its own volume).
+            - name: BACKUP_PATH
+              value: "/config/metadata/backups"
             - name: AUDIOBOOKS_PATH
               value: "/audiobooks"
           volumeMounts:
