@@ -15,7 +15,7 @@ spec:
     - noatime
   nfs:
     server: 10.10.20.220
-    path: /mnt/Media/jellyfin
+    path: /mnt/Media/media
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

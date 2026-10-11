@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: abs-audiobooks-nfs
+  name: abs-media-nfs
 spec:
   capacity:
-    storage: 500Gi
+    storage: 3Ti
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
@@ -15,18 +15,18 @@ spec:
     - noatime
   nfs:
     server: 10.10.20.220
-    path: /mnt/Media/audiobooks
+    path: /mnt/Media/media
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: abs-audiobooks
+  name: abs-media
   namespace: audiobookshelf
 spec:
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 500Gi
+      storage: 3Ti
   storageClassName: ""
-  volumeName: abs-audiobooks-nfs
+  volumeName: abs-media-nfs

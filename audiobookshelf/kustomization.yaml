@@ -5,7 +5,7 @@ resources:
   - networkpolicy.yaml
   - pvc-config.yaml
   - pvc-metadata.yaml
-  - pvc-audiobooks.yaml
+  - pvc-media.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
