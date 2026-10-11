@@ -14,14 +14,22 @@ spec:
     service:
       spec:
         externalTrafficPolicy: Local
-    # Traefik v3 defaults to a 60s readTimeout, which aborts large uploads
-    # (Immich videos, Nextcloud) over slow links like Netbird.
     ports:
+      # Plain HTTP only redirects to HTTPS (certs come via DNS-01, so nothing
+      # needs to be served on :80).
       web:
-        transport:
-          respondingTimeouts:
-            readTimeout: 600s
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
       websecure:
+        http:
+          middlewares:
+            - kube-system-hsts@kubernetescrd
+        # Traefik v3 defaults to a 60s readTimeout, which aborts large uploads
+        # (Immich videos, Nextcloud) over slow links like Netbird.
         transport:
           respondingTimeouts:
             readTimeout: 600s

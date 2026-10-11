@@ -16,7 +16,7 @@ help:
 ## --- k3s' bundled Traefik (overrides via HelmChartConfig) ---
 
 traefik:
-	kubectl apply -f traefik/helmchartconfig.yaml
+	kubectl apply -k traefik/
 
 ## --- Platform (not built into k3s) ---
 

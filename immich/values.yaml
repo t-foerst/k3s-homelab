@@ -23,6 +23,12 @@ immich:
 
 valkey:
   enabled: true
+  controllers:
+    main:
+      pod:
+        annotations:
+          # Only job queues, rebuilt by Immich; no need to back them up
+          backup.velero.io/backup-volumes-excludes: data
   persistence:
     data:
       type: persistentVolumeClaim
@@ -66,6 +72,10 @@ machine-learning:
   enabled: true
   controllers:
     main:
+      pod:
+        annotations:
+          # Model cache, re-downloaded on demand; no need to back it up
+          backup.velero.io/backup-volumes-excludes: cache
       containers:
         main:
           resources:

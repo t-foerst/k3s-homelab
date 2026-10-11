@@ -1,0 +1,11 @@
+# HSTS for every host on the websecure entrypoint (wired up in
+# helmchartconfig.yaml). No includeSubDomains: other *.foerst.haus devices
+# (switch, ...) are still plain HTTP.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: hsts
+  namespace: kube-system
+spec:
+  headers:
+    stsSeconds: 31536000
