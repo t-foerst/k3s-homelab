@@ -7,7 +7,7 @@ Manifests for a single-node K3s homelab cluster. Deployed with Helm (official ch
 | App | Namespace | Packaging | Hostname |
 |---|---|---|---|
 | Vaultwarden | `vaultwarden` | Kustomize | vault.foerst.haus |
-| Sonarr / Radarr / Prowlarr / SABnzbd | `arr` | Kustomize | sonarr/radarr/prowlarr/sabnzbd.foerst.haus |
+| Sonarr / Radarr / Prowlarr / SABnzbd / Bindery | `arr` | Kustomize | sonarr/radarr/prowlarr/sabnzbd/bindery.foerst.haus |
 | Audiobookshelf | `audiobookshelf` | Kustomize | books.foerst.haus |
 | Jellyfin | `jellyfin` | Kustomize | media.foerst.haus |
 | Homarr | `homarr` | Helm | dash.foerst.haus |
@@ -47,7 +47,7 @@ This only works for apps on `local-path`. Apps with static NFS PVs (Nextcloud, I
 
 - `local-path` — K3s' built-in dynamic provisioner, for app config/DB/cache volumes
 - Static NFS PV/PVC (`storageClassName: ""`), TrueNAS at `10.10.20.220` — for media/library volumes (`arr`, `audiobookshelf`, `jellyfin`, `immich`, `nextcloud`)
-- `/mnt/Media/media` is the shared media share (`movies/`, `tv/`, `audiobooks/`), mounted by `arr` and `jellyfin` at `/media` and by Audiobookshelf with `subPath: audiobooks` at `/audiobooks`. Downloads live separately in `/mnt/Media/downloads`.
+- `/mnt/Media/media` is the shared media share (`movies/`, `tv/`, `audiobooks/`), mounted by `arr` and `jellyfin` at `/media` and by Audiobookshelf with `subPath: audiobooks` at `/audiobooks`. Downloads live separately in `/mnt/Media/downloads`. Bindery (audiobooks) imports into `/media/audiobooks`, so new books show up in Audiobookshelf directly.
 
 ## Deploy
 
