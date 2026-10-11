@@ -4,7 +4,6 @@ resources:
   - namespace.yaml
   - networkpolicy.yaml
   - pvc-config.yaml
-  - pvc-metadata.yaml
   - pvc-media.yaml
   - deployment.yaml
   - service.yaml

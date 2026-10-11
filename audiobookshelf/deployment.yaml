@@ -15,7 +15,7 @@ spec:
       labels:
         app: audiobookshelf
       annotations:
-        backup.velero.io/backup-volumes-excludes: metadata,audiobooks
+        backup.velero.io/backup-volumes-excludes: audiobooks
     spec:
       securityContext:
         fsGroup: 1000
@@ -33,15 +33,16 @@ spec:
               value: "13378"
             - name: CONFIG_PATH
               value: "/config"
+            # Lives inside the config volume; covers and metadata.json are
+            # stored next to each book, so this only holds cache, logs and
+            # ABS backups.
             - name: METADATA_PATH
-              value: "/metadata"
+              value: "/config/metadata"
             - name: AUDIOBOOKS_PATH
               value: "/audiobooks"
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: metadata
-              mountPath: /metadata
             - name: audiobooks
               mountPath: /audiobooks
               subPath: audiobooks
@@ -67,9 +68,6 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: abs-config
-        - name: metadata
-          persistentVolumeClaim:
-            claimName: abs-metadata
         - name: audiobooks
           persistentVolumeClaim:
             claimName: abs-media
