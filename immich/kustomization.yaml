@@ -1,5 +1,6 @@
 resources:
   - namespace.yaml
+  - networkpolicy.yaml
   - pvc-library.yaml
   - pvc-db.yaml
   - deployment-db.yaml

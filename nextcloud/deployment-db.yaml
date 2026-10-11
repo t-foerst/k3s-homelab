@@ -14,6 +14,14 @@ spec:
     metadata:
       labels:
         app: nextcloud-db
+      annotations:
+        # Kopia copies the live PGDATA file by file, which isn't guaranteed to be
+        # consistent. Dump the DB right before Velero backs up the volume; the dump
+        # sits next to PGDATA on the same PVC, so it ends up in the backup too.
+        # Uncompressed (-Z 0) so Kopia can deduplicate it between days.
+        pre.hook.backup.velero.io/container: postgres
+        pre.hook.backup.velero.io/command: '["/bin/sh", "-c", "pg_dump -U nextcloud -d nextcloud -Fc -Z 0 -f /var/lib/postgresql/data/nextcloud.dump.tmp && mv /var/lib/postgresql/data/nextcloud.dump.tmp /var/lib/postgresql/data/nextcloud.dump"]'
+        pre.hook.backup.velero.io/timeout: 10m
     spec:
       containers:
         - name: postgres

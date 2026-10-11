@@ -14,6 +14,13 @@ spec:
     metadata:
       labels:
         app: vaultwarden
+      annotations:
+        # Copying the live SQLite DB + WAL file by file isn't guaranteed to be
+        # consistent. `vaultwarden backup` (VACUUM INTO) writes a consistent copy
+        # right before Velero backs up /data; keep only the latest as db-backup.sqlite3.
+        pre.hook.backup.velero.io/container: vaultwarden
+        pre.hook.backup.velero.io/command: '["/bin/sh", "-c", "/vaultwarden backup && cd /data && mv \"$(ls -t db_*.sqlite3 | head -n1)\" db-backup.sqlite3 && rm -f db_*.sqlite3"]'
+        pre.hook.backup.velero.io/timeout: 2m
     spec:
       containers:
         - name: vaultwarden

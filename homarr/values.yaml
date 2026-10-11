@@ -29,5 +29,12 @@ ingress:
       hosts:
         - dash.foerst.haus
 
+resources:
+  requests:
+    cpu: 50m
+    memory: 512Mi
+  limits:
+    memory: 1536Mi
+
 rbac:
   enabled: true

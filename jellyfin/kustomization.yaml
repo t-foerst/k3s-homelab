@@ -1,5 +1,6 @@
 resources:
   - namespace.yaml
+  - networkpolicy.yaml
   - pvc-config.yaml
   - pvc-media.yaml
   - deployment.yaml

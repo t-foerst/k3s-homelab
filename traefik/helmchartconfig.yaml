@@ -1,0 +1,33 @@
+# Overrides for k3s' bundled Traefik. k3s' helm-controller merges these values
+# on top of its own HelmChart (kube-system/traefik) and re-runs the install job.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    # With the default "Cluster" policy ServiceLB SNATs incoming traffic, so
+    # every app only ever saw 10.42.0.1 as client IP (useless logs, no working
+    # brute-force protection). "Local" keeps the real source IP; on a single
+    # node there's no routing downside.
+    service:
+      spec:
+        externalTrafficPolicy: Local
+    # Traefik v3 defaults to a 60s readTimeout, which aborts large uploads
+    # (Immich videos, Nextcloud) over slow links like Netbird.
+    ports:
+      web:
+        transport:
+          respondingTimeouts:
+            readTimeout: 600s
+      websecure:
+        transport:
+          respondingTimeouts:
+            readTimeout: 600s
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 512Mi

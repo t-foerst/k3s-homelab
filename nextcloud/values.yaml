@@ -32,9 +32,8 @@ nextcloud:
         'default_phone_region' => 'DE',
         'loglevel' => 2,
         'maintenance_window_start' => 1,
-        'trusted_proxies' => ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
+        'trusted_proxies' => ['10.42.0.0/16'],
         'forwarded_for_headers' => ['HTTP_X_FORWARDED_FOR'],
-        'auth.bruteforce.protection.enabled' => false,
       );
 
 phpClientHttpsFix:
@@ -68,6 +67,20 @@ externalRedis:
 cronjob:
   enabled: true
   type: sidecar
+  sidecar:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        memory: 1Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    memory: 2Gi
 
 persistence:
   enabled: true
