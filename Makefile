@@ -1,9 +1,9 @@
-.PHONY: help traefik cert-manager clusterissuer velero velero-prune-repos monitoring arr audiobookshelf jellyfin vaultwarden homarr immich nextcloud all
+.PHONY: help traefik cert-manager clusterissuer velero velero-prune-repos monitoring arr audiobookshelf jellyfin vaultwarden rmfakecloud homarr immich nextcloud all
 
 help:
 	@echo "Platform:      make traefik cert-manager clusterissuer velero monitoring"
 	@echo "Maintenance:   make velero-prune-repos"
-	@echo "Raw manifests: make arr audiobookshelf jellyfin vaultwarden"
+	@echo "Raw manifests: make arr audiobookshelf jellyfin vaultwarden rmfakecloud"
 	@echo "Helm apps:     make homarr immich nextcloud"
 	@echo "Everything:    make all"
 	@echo ""
@@ -77,6 +77,9 @@ jellyfin:
 vaultwarden:
 	kubectl apply -k vaultwarden/
 
+rmfakecloud:
+	kubectl apply -k rmfakecloud/
+
 ## --- Apps deployed via their official Helm chart ---
 ## (namespace + supporting DB/Redis/Middleware manifests are applied first)
 
@@ -97,4 +100,4 @@ nextcloud:
 	helm upgrade --install nextcloud nextcloud/nextcloud --version 9.2.6 \
 		--namespace nextcloud -f nextcloud/values.yaml
 
-all: traefik cert-manager clusterissuer velero monitoring arr audiobookshelf jellyfin vaultwarden homarr immich nextcloud
+all: traefik cert-manager clusterissuer velero monitoring arr audiobookshelf jellyfin vaultwarden rmfakecloud homarr immich nextcloud

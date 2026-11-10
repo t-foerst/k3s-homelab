@@ -7,6 +7,7 @@ Manifests for a single-node K3s homelab cluster. Deployed with Helm (official ch
 | App | Namespace | Packaging | Hostname |
 |---|---|---|---|
 | Vaultwarden | `vaultwarden` | Kustomize | vault.foerst.haus |
+| rmfakecloud (reMarkable cloud replacement) | `rmfakecloud` | Kustomize | rm.foerst.haus |
 | Sonarr / Radarr / Prowlarr / SABnzbd / Bindery | `arr` | Kustomize | sonarr/radarr/prowlarr/sabnzbd/bindery.foerst.haus |
 | Audiobookshelf | `audiobookshelf` | Kustomize | books.foerst.haus |
 | Jellyfin | `jellyfin` | Kustomize | media.foerst.haus |
@@ -56,7 +57,7 @@ make traefik                      # Traefik overrides (client IP, upload timeout
 make cert-manager clusterissuer   # TLS
 make velero                       # backups
 make monitoring                   # metrics
-make arr audiobookshelf jellyfin vaultwarden homarr immich nextcloud
+make arr audiobookshelf jellyfin vaultwarden rmfakecloud homarr immich nextcloud
 # or: make all
 ```
 
@@ -75,6 +76,7 @@ make arr audiobookshelf jellyfin vaultwarden homarr immich nextcloud
 | `immich-secret` | `immich` | `db-password` |
 | `nextcloud-secret` | `nextcloud` | `admin-user`, `admin-password`, `postgresql-username`, `postgresql-password`, `redis-password` |
 | `vaultwarden-secret` | `vaultwarden` | `ADMIN_TOKEN` |
+| `rmfakecloud-secret` | `rmfakecloud` | `JWT_SECRET_KEY` (`openssl rand -base64 48`; changing it logs out the tablet) |
 
 `arr`, `audiobookshelf`, and `jellyfin` need no secrets.
 

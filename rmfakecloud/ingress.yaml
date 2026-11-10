@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rmfakecloud
+  namespace: rmfakecloud
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - rm.foerst.haus
+      secretName: rmfakecloud-tls
+  rules:
+    - host: rm.foerst.haus
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rmfakecloud
+                port:
+                  number: 80
