@@ -2,6 +2,15 @@
 
 Manifests for a single-node K3s homelab cluster. Deployed with Helm (official charts) or `kubectl apply -k` (raw Kustomize manifests) via `make` — no ArgoCD, no MetalLB, no Longhorn. Uses K3s' built-in Traefik/ServiceLB and `local-path` StorageClass.
 
+## Homelab overview
+
+The cluster is one part of a small self-hosted setup:
+
+- **Network**: MikroTik router with VLAN segmentation (management, homelab, clients, DMZ, IoT, guests) and firewall rules between them. Nothing is exposed to the internet: all services are reachable only from the LAN or via the WireGuard-based [Netbird](https://netbird.io/) VPN
+- **Proxmox host** with three VMs: this K3s node, TrueNAS (NFS storage for media/library volumes) and Home Assistant
+- **Raspberry Pi** ([homelab-pi](https://github.com/t-foerst/homelab-pi)): AdGuard Home (DNS), Prometheus + Grafana (scrapes this cluster, see Monitoring below), Uptime Kuma, Netbird
+- **Off-site backup server** ([backup-server](https://github.com/t-foerst/backup-server)): Garage (S3-compatible), target of the Velero backups below, reached over Netbird
+
 ## Apps
 
 | App | Namespace | Packaging | Hostname |
